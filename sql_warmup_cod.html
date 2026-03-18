@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Warm-Up — Causes of Death</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap');
+  :root {
+    --bg: #0f0a0a; --surface: #160f0f; --card: #1a1212; --border: #2a1e1e;
+    --accent: #f87171; --accent2: #fb923c; --accent3: #34d399; --accent4: #fbbf24;
+    --text: #fff0f0; --muted: #6a4a4a; --answer-bg: #0a1628; --answer-border: #1a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-weight: 300; line-height: 1.7; }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+  .hero::before { content: 'SQL'; position: absolute; right: 0px; top: 20px; font-family: 'Syne', sans-serif; font-size: 150px; font-weight: 800; color: rgba(248,113,113,0.04); pointer-events: none; }
+  .hero-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 20px; }
+  .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 5vw, 3.8rem); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero p { color: var(--muted); font-size: 15px; max-width: 560px; margin-bottom: 32px; }
+  .dataset-info { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); }
+  .tag.active { border-color: var(--accent); color: var(--accent); }
+  .main { max-width: 900px; margin: 0 auto; padding: 40px; }
+  .concept-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .concept-box h3 { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
+  .concept-box.having { border-color: rgba(248,113,113,0.3); }
+  .concept-box.having h3 { color: var(--accent); }
+  .concept-box.joins { border-color: rgba(251,146,60,0.3); }
+  .concept-box.joins h3 { color: var(--accent2); }
+  .concept-box.subquery { border-color: rgba(52,211,153,0.3); }
+  .concept-box.subquery h3 { color: var(--accent3); }
+  pre.concept { background: var(--answer-bg); border: 1px solid var(--answer-border); border-radius: 8px; padding: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.8; color: #7ec8ff; margin-bottom: 10px; overflow-x: auto; }
+  .concept-note { font-size: 13px; color: var(--muted); font-style: italic; margin-top: 8px; }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .compare-item { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 14px; }
+  .compare-item h4 { font-family: 'IBM Plex Mono', monospace; font-size: 11px; margin-bottom: 8px; }
+  .section-header { display: flex; align-items: center; gap: 16px; margin: 50px 0 20px; }
+  .section-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+  .exercise-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; transition: all 0.2s; }
+  .exercise-card:hover { border-color: #3a2a2a; }
+  .exercise-card.completed { border-color: rgba(52,211,153,0.3); }
+  .exercise-header { padding: 20px 24px; display: flex; align-items: flex-start; gap: 16px; }
+  .ex-number { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent); background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); padding: 4px 10px; border-radius: 6px; flex-shrink: 0; margin-top: 2px; min-width: 52px; text-align: center; }
+  .ex-content { flex: 1; }
+  .ex-question { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
+  .ex-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ex-hint { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+  .ex-hint span { color: var(--accent3); margin-right: 6px; }
+  .btn-group { display: flex; gap: 8px; flex-shrink: 0; }
+  .toggle-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; }
+  .toggle-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+  .done-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+  .done-btn.marked { border-color: var(--accent3); color: var(--accent3); background: rgba(52,211,153,0.1); }
+  .answer-block { display: none; padding: 0 24px 24px; }
+  .answer-block.visible { display: block; }
+  .answer-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--accent3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  pre { background: var(--answer-bg); border: 1px solid var(--answer-border); border-radius: 8px; padding: 20px; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.8; color: #7ec8ff; }
+  .insight { margin-top: 12px; padding: 14px 18px; background: rgba(251,191,36,0.05); border-left: 3px solid var(--accent4); border-radius: 0 8px 8px 0; font-size: 13px; color: var(--accent4); font-style: italic; }
+  .difficulty { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 3px 8px; border-radius: 4px; }
+  .easy { background: rgba(52,211,153,0.1); color: var(--accent3); }
+  .medium { background: rgba(251,191,36,0.1); color: var(--accent4); }
+  .hard { background: rgba(248,113,113,0.1); color: var(--accent); }
+  .concept-tag { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 3px 8px; border-radius: 4px; background: rgba(248,113,113,0.1); color: var(--accent); border: 1px solid rgba(248,113,113,0.15); }
+  .progress-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 40px; }
+  .progress-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .progress-label span { color: var(--accent); }
+  .progress-track { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-fill { background: linear-gradient(90deg, var(--accent), var(--accent2)); height: 100%; width: 0%; border-radius: 4px; transition: width 0.5s ease; }
+  .columns-ref { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .col-item { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+  .col-item span { color: var(--accent3); }
+  .footer { text-align: center; padding: 60px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; font-family: 'IBM Plex Mono', monospace; }
+  .footer span { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-tag">// sql warm-up · causes of death</div>
+  <h1>Query the<br><span>World's Data</span></h1>
+  <p>9 focused exercises on HAVING, JOINs, and Subqueries — using real global death data. Read each concept first, then practice.</p>
+  <div class="dataset-info">
+    <div class="tag active">causes_of_death.db</div>
+    <div class="tag">8254 rows</div>
+    <div class="tag">HAVING</div>
+    <div class="tag">JOIN</div>
+    <div class="tag">Subqueries</div>
+    <div class="tag">CTEs</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Progress -->
+  <div class="progress-bar">
+    <div class="progress-label">Your Progress <span id="progress-text">0 / 9 completed</span></div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <!-- Column Reference -->
+  <div style="margin-bottom:12px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;">Table: causes_of_death</div>
+  <div class="columns-ref">
+    <div class="col-item"><span>TEXT</span> Entity</div>
+    <div class="col-item"><span>TEXT</span> Code</div>
+    <div class="col-item"><span>INT</span> Year</div>
+    <div class="col-item"><span>REAL</span> Cardiovascular diseases</div>
+    <div class="col-item"><span>REAL</span> Neoplasms</div>
+    <div class="col-item"><span>REAL</span> Malaria</div>
+    <div class="col-item"><span>REAL</span> HIV/AIDS</div>
+    <div class="col-item"><span>REAL</span> Tuberculosis</div>
+    <div class="col-item"><span>REAL</span> Neonatal disorders</div>
+    <div class="col-item"><span>REAL</span> Lower respiratory infections</div>
+    <div class="col-item"><span>REAL</span> Diabetes mellitus</div>
+    <div class="col-item"><span>REAL</span> Chronic respiratory diseases</div>
+    <div class="col-item"><span>REAL</span> Self-harm</div>
+    <div class="col-item"><span>REAL</span> Nutritional deficiencies</div>
+    <div class="col-item"><span>REAL</span> Conflict and terrorism</div>
+    <div class="col-item"><span>REAL</span> Alzheimer's disease and other dementias</div>
+    <div class="col-item"><span>REAL</span> Parkinson's disease</div>
+  </div>
+
+  <!-- CONCEPT 1: HAVING -->
+  <div class="concept-box having">
+    <h3>💡 Concept 1 — HAVING vs WHERE</h3>
+    <div class="compare-grid">
+      <div class="compare-item">
+        <h4 style="color:#fb7185">❌ WHERE — filters ROWS before grouping</h4>
+        <pre class="concept">SELECT Entity, AVG("Cardiovascular diseases")
+FROM causes_of_death
+WHERE Year > 2000  -- filters rows first
+GROUP BY Entity</pre>
+      </div>
+      <div class="compare-item">
+        <h4 style="color:#34d399">✅ HAVING — filters GROUPS after grouping</h4>
+        <pre class="concept">SELECT Entity, AVG("Cardiovascular diseases")
+FROM causes_of_death
+GROUP BY Entity
+HAVING AVG("Cardiovascular diseases") > 50000</pre>
+      </div>
+    </div>
+    <p class="concept-note">⚠️ Column names with spaces need quotes in SQL: "Cardiovascular diseases" not just Cardiovascular diseases</p>
+  </div>
+
+  <!-- CONCEPT 2: JOINs -->
+  <div class="concept-box joins">
+    <h3>💡 Concept 2 — JOINs with CTEs</h3>
+    <pre class="concept">-- Create two summaries then JOIN them
+WITH summary1 AS (
+    SELECT Entity, AVG("Cardiovascular diseases") AS avg_cardio
+    FROM causes_of_death
+    GROUP BY Entity
+),
+summary2 AS (
+    SELECT Entity, AVG("Malaria") AS avg_malaria
+    FROM causes_of_death
+    GROUP BY Entity
+)
+SELECT s1.Entity, s1.avg_cardio, s2.avg_malaria
+FROM summary1 s1
+JOIN summary2 s2 ON s1.Entity = s2.Entity</pre>
+    <p class="concept-note">Since we only have ONE table, JOINs here work by joining CTEs — summaries you create on the fly and then combine.</p>
+  </div>
+
+  <!-- CONCEPT 3: Subqueries -->
+  <div class="concept-box subquery">
+    <h3>💡 Concept 3 — Subqueries</h3>
+    <pre class="concept">-- Find countries with MORE malaria deaths than the world average
+SELECT Entity, "Malaria"
+FROM causes_of_death
+WHERE Year = 2019
+  AND "Malaria" > (
+      SELECT AVG("Malaria")   -- runs first → returns one number
+      FROM causes_of_death
+      WHERE Year = 2019
+  )
+ORDER BY "Malaria" DESC</pre>
+    <p class="concept-note">The subquery calculates the average first. Then the outer query uses that number to filter. Inner query always runs first.</p>
+  </div>
+
+  <!-- SECTION 1: HAVING -->
+  <div class="section-header">
+    <div class="section-dot" style="background:var(--accent)"></div>
+    <div class="section-title">HAVING</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 01</div>
+      <div class="ex-content">
+        <div class="ex-question">Find all countries (Entity) where the average Cardiovascular diseases deaths across all years is above 100,000. Show Entity and average, ordered highest first.</div>
+        <div class="ex-meta">
+          <span class="difficulty easy">easy</span>
+          <span class="concept-tag">HAVING</span>
+          <span class="ex-hint"><span>hint →</span> GROUP BY Entity, HAVING AVG("Cardiovascular diseases") > 100000</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity,
+    ROUND(AVG("Cardiovascular diseases"), 0) AS avg_cardio_deaths
+FROM causes_of_death
+GROUP BY Entity
+HAVING AVG("Cardiovascular diseases") > 100000
+ORDER BY avg_cardio_deaths DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Column names with spaces MUST be wrapped in double quotes in SQLite. "Cardiovascular diseases" not Cardiovascular diseases — otherwise SQL thinks it's two separate things.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 02</div>
+      <div class="ex-content">
+        <div class="ex-question">Find countries that appear in MORE than 20 years of data AND have average Malaria deaths above 10,000. Show Entity, year count, and average Malaria deaths.</div>
+        <div class="ex-meta">
+          <span class="difficulty medium">medium</span>
+          <span class="concept-tag">HAVING</span>
+          <span class="ex-hint"><span>hint →</span> HAVING COUNT(*) > 20 AND AVG("Malaria") > 10000</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity,
+    COUNT(*) AS years_of_data,
+    ROUND(AVG("Malaria"), 0) AS avg_malaria_deaths
+FROM causes_of_death
+GROUP BY Entity
+HAVING COUNT(*) > 20 
+   AND AVG("Malaria") > 10000
+ORDER BY avg_malaria_deaths DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 COUNT(*) counts rows — in this dataset each row is one year for one country. So COUNT(*) > 20 means we have more than 20 years of data for that country.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 03</div>
+      <div class="ex-content">
+        <div class="ex-question">Filter for Year 2019 only (WHERE), then find countries where BOTH HIV/AIDS deaths AND Tuberculosis deaths average above 5,000. Use HAVING for both conditions.</div>
+        <div class="ex-meta">
+          <span class="difficulty medium">medium</span>
+          <span class="concept-tag">WHERE + HAVING</span>
+          <span class="ex-hint"><span>hint →</span> WHERE Year = 2019 first, then GROUP BY Entity, then HAVING both conditions</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity,
+    ROUND(AVG("HIV/AIDS"), 0) AS avg_hiv,
+    ROUND(AVG("Tuberculosis"), 0) AS avg_tb
+FROM causes_of_death
+WHERE Year = 2019
+GROUP BY Entity
+HAVING AVG("HIV/AIDS") > 5000
+   AND AVG("Tuberculosis") > 5000
+ORDER BY avg_hiv DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 WHERE Year = 2019 filters to one year per country — so AVG() here is just the value for that year. The real power is HAVING filtering which countries meet BOTH disease thresholds.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: JOINs -->
+  <div class="section-header">
+    <div class="section-dot" style="background:var(--accent2)"></div>
+    <div class="section-title">JOINs with CTEs</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 04</div>
+      <div class="ex-content">
+        <div class="ex-question">Using a CTE for average Cardiovascular deaths per country, JOIN it back to the main table to show each year's data alongside the country's all-time average. Show Entity, Year, that year's deaths, and the country average. Limit to Morocco.</div>
+        <div class="ex-meta">
+          <span class="difficulty medium">medium</span>
+          <span class="concept-tag">JOIN + CTE</span>
+          <span class="ex-hint"><span>hint →</span> WITH avg_cardio AS (...) SELECT ... FROM causes_of_death JOIN avg_cardio ON Entity</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH country_avg AS (
+    SELECT 
+        Entity,
+        ROUND(AVG("Cardiovascular diseases"), 0) AS avg_cardio
+    FROM causes_of_death
+    GROUP BY Entity
+)
+SELECT 
+    c.Entity,
+    c.Year,
+    c."Cardiovascular diseases" AS this_year_deaths,
+    ca.avg_cardio AS country_avg
+FROM causes_of_death c
+JOIN country_avg ca ON c.Entity = ca.Entity
+WHERE c.Entity = 'Morocco'
+ORDER BY c.Year
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 This is the SQL version of pandas .transform('mean') — adding the group average back to each row so you can compare individual years to the overall trend. 🇲🇦</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 05</div>
+      <div class="ex-content">
+        <div class="ex-question">Using TWO CTEs: one for average Cardiovascular deaths per country, one for average Diabetes deaths per country. JOIN them to show both side by side. Which country has high cardiovascular AND high diabetes deaths?</div>
+        <div class="ex-meta">
+          <span class="difficulty medium">medium</span>
+          <span class="concept-tag">JOIN + 2 CTEs</span>
+          <span class="ex-hint"><span>hint →</span> WITH cte1 AS (...), cte2 AS (...) JOIN on Entity</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH cardio_avg AS (
+    SELECT Entity,
+           ROUND(AVG("Cardiovascular diseases"), 0) AS avg_cardio
+    FROM causes_of_death
+    GROUP BY Entity
+),
+diabetes_avg AS (
+    SELECT Entity,
+           ROUND(AVG("Diabetes mellitus"), 0) AS avg_diabetes
+    FROM causes_of_death
+    GROUP BY Entity
+)
+SELECT 
+    c.Entity,
+    c.avg_cardio,
+    d.avg_diabetes
+FROM cardio_avg c
+JOIN diabetes_avg d ON c.Entity = d.Entity
+ORDER BY c.avg_cardio DESC
+LIMIT 15
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Two CTEs separated by a comma — each one calculates one metric. Then JOIN combines them like two puzzle pieces using Entity as the shared key.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 06</div>
+      <div class="ex-content">
+        <div class="ex-question">Create a CTE with total deaths from Conflict and terrorism per country. LEFT JOIN it with a CTE of total Cardiovascular deaths. Show all countries — even those with zero conflict deaths. Order by conflict deaths descending.</div>
+        <div class="ex-meta">
+          <span class="difficulty hard">hard</span>
+          <span class="concept-tag">LEFT JOIN</span>
+          <span class="ex-hint"><span>hint →</span> LEFT JOIN keeps ALL rows from left CTE — missing matches show as NULL</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH cardio AS (
+    SELECT Entity,
+           ROUND(SUM("Cardiovascular diseases"), 0) AS total_cardio
+    FROM causes_of_death
+    GROUP BY Entity
+),
+conflict AS (
+    SELECT Entity,
+           ROUND(SUM("Conflict and terrorism"), 0) AS total_conflict
+    FROM causes_of_death
+    WHERE "Conflict and terrorism" > 0
+    GROUP BY Entity
+)
+SELECT 
+    ca.Entity,
+    ca.total_cardio,
+    co.total_conflict
+FROM cardio ca
+LEFT JOIN conflict co ON ca.Entity = co.Entity
+ORDER BY co.total_conflict DESC
+LIMIT 20
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 LEFT JOIN keeps ALL countries from the cardio CTE — even countries with zero conflict deaths (they show NULL). Use LEFT JOIN when you don't want to lose any records from your main dataset.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Subqueries -->
+  <div class="section-header">
+    <div class="section-dot" style="background:var(--accent3)"></div>
+    <div class="section-title">Subqueries</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 07</div>
+      <div class="ex-content">
+        <div class="ex-question">For year 2019, find all countries where Malaria deaths were above the world average Malaria deaths for that same year. Show Entity and Malaria deaths.</div>
+        <div class="ex-meta">
+          <span class="difficulty medium">medium</span>
+          <span class="concept-tag">Subquery in WHERE</span>
+          <span class="ex-hint"><span>hint →</span> WHERE "Malaria" > (SELECT AVG("Malaria") FROM ... WHERE Year = 2019)</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity,
+    "Malaria" AS malaria_deaths
+FROM causes_of_death
+WHERE Year = 2019
+  AND "Malaria" > (
+      SELECT AVG("Malaria")
+      FROM causes_of_death
+      WHERE Year = 2019
+  )
+ORDER BY malaria_deaths DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 The subquery and outer query both filter for Year = 2019 — this is important! You want to compare each country to the world average for the SAME year, not all years combined.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 08</div>
+      <div class="ex-content">
+        <div class="ex-question">Find the year where global Cardiovascular deaths were the highest. Use a subquery — without just using ORDER BY + LIMIT 1.</div>
+        <div class="ex-meta">
+          <span class="difficulty medium">medium</span>
+          <span class="concept-tag">Subquery in HAVING</span>
+          <span class="ex-hint"><span>hint →</span> GROUP BY Year, HAVING SUM(...) = (SELECT MAX(total) FROM (subquery))</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Year,
+    ROUND(SUM("Cardiovascular diseases"), 0) AS total_cardio
+FROM causes_of_death
+GROUP BY Year
+HAVING SUM("Cardiovascular diseases") = (
+    SELECT MAX(total_c)
+    FROM (
+        SELECT SUM("Cardiovascular diseases") AS total_c
+        FROM causes_of_death
+        GROUP BY Year
+    )
+)
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Nested subquery — the innermost calculates totals per year, the middle finds the max, and HAVING matches the year with that max total. Three levels of logic in one query!</div>
+    </div>
+  </div>
+
+  <div class="exercise-card" style="border-color:rgba(248,113,113,0.4)">
+    <div class="exercise-header">
+      <div class="ex-number" style="color:var(--accent2);background:rgba(251,146,60,0.1);border-color:rgba(251,146,60,0.2)">EX 09</div>
+      <div class="ex-content">
+        <div class="ex-question">BOSS: Find countries where Cardiovascular deaths are above the global average AND Malaria deaths are BELOW the global average. These are likely developed countries — high chronic disease, low infectious disease. Use subqueries for both conditions. Filter for Year 2019.</div>
+        <div class="ex-meta">
+          <span class="difficulty hard">hard</span>
+          <span class="concept-tag">WHERE + 2 Subqueries</span>
+          <span class="ex-hint"><span>hint →</span> WHERE "Cardiovascular diseases" > (subquery) AND "Malaria" < (subquery)</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="done-btn" onclick="markDone(this)">✓</button>
+        <button class="toggle-btn" onclick="toggle(this)">SHOW</button>
+      </div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity,
+    ROUND("Cardiovascular diseases", 0) AS cardio_deaths,
+    ROUND("Malaria", 0) AS malaria_deaths
+FROM causes_of_death
+WHERE Year = 2019
+  AND "Cardiovascular diseases" > (
+      SELECT AVG("Cardiovascular diseases")
+      FROM causes_of_death
+      WHERE Year = 2019
+  )
+  AND "Malaria" < (
+      SELECT AVG("Malaria")
+      FROM causes_of_death
+      WHERE Year = 2019
+  )
+ORDER BY cardio_deaths DESC
+LIMIT 20
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 This query tells a real public health story — countries with high cardiovascular but low malaria deaths are typically wealthier nations where infectious diseases are controlled but aging populations face chronic disease. Real insight from real data. 🌍</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  built for <span>fatima zahra</span> · real data · real stories · 🇲🇦
+</div>
+
+<script>
+  let completed = 0;
+  const total = 9;
+  function toggle(btn) {
+    const card = btn.closest('.exercise-card');
+    const answer = card.querySelector('.answer-block');
+    if (answer.classList.contains('visible')) {
+      answer.classList.remove('visible');
+      btn.textContent = 'SHOW';
+    } else {
+      answer.classList.add('visible');
+      btn.textContent = 'HIDE';
+    }
+  }
+  function markDone(btn) {
+    const card = btn.closest('.exercise-card');
+    if (btn.classList.contains('marked')) {
+      btn.classList.remove('marked');
+      card.classList.remove('completed');
+      completed--;
+    } else {
+      btn.classList.add('marked');
+      card.classList.add('completed');
+      completed++;
+    }
+    document.getElementById('progress-text').textContent = `${completed} / ${total} completed`;
+    document.getElementById('progress-fill').style.width = `${(completed/total)*100}%`;
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Advanced — Causes of Death</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap');
+  :root {
+    --bg: #080d0f; --surface: #0d1518; --card: #111c1f; --border: #1a2a2f;
+    --accent: #22d3ee; --accent2: #f472b6; --accent3: #4ade80; --accent4: #fbbf24;
+    --text: #e0f8ff; --muted: #3a5a60; --answer-bg: #060f12; --answer-border: #0f2a30;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-weight: 300; line-height: 1.7; }
+  .hero { padding: 80px 40px 60px; max-width: 960px; margin: 0 auto; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+  .hero::before { content: 'ADV'; position: absolute; right: -10px; top: 20px; font-family: 'Syne', sans-serif; font-size: 160px; font-weight: 800; color: rgba(34,211,238,0.03); pointer-events: none; }
+  .hero-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 20px; }
+  .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 5vw, 3.8rem); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero p { color: var(--muted); font-size: 15px; max-width: 580px; margin-bottom: 32px; }
+  .dataset-info { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); }
+  .tag.active { border-color: var(--accent); color: var(--accent); }
+  .main { max-width: 960px; margin: 0 auto; padding: 40px; }
+  .progress-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 40px; }
+  .progress-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .progress-label span { color: var(--accent); }
+  .progress-track { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-fill { background: linear-gradient(90deg, var(--accent), var(--accent2)); height: 100%; width: 0%; border-radius: 4px; transition: width 0.5s ease; }
+  .cheatsheet { background: var(--card); border: 1px solid rgba(34,211,238,0.2); border-radius: 14px; padding: 28px; margin-bottom: 40px; }
+  .cheatsheet h3 { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; }
+  .cheat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .cheat-item { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; }
+  .cheat-item h4 { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent2); margin-bottom: 8px; letter-spacing: 1px; }
+  .cheat-item pre { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7ec8ff; line-height: 1.7; background: none; border: none; padding: 0; }
+  .section-header { display: flex; align-items: center; gap: 16px; margin: 50px 0 20px; }
+  .section-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+  .section-count { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+  .exercise-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; transition: all 0.2s; }
+  .exercise-card:hover { border-color: #1a3a40; transform: translateY(-1px); }
+  .exercise-card.completed { border-color: rgba(74,222,128,0.3); }
+  .exercise-header { padding: 20px 24px; display: flex; align-items: flex-start; gap: 16px; }
+  .ex-number { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent); background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.2); padding: 4px 10px; border-radius: 6px; flex-shrink: 0; margin-top: 2px; min-width: 52px; text-align: center; }
+  .ex-content { flex: 1; }
+  .ex-question { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
+  .ex-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ex-hint { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+  .ex-hint span { color: var(--accent3); margin-right: 6px; }
+  .btn-group { display: flex; gap: 8px; flex-shrink: 0; }
+  .toggle-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; }
+  .toggle-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+  .done-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+  .done-btn.marked { border-color: var(--accent3); color: var(--accent3); background: rgba(74,222,128,0.1); }
+  .answer-block { display: none; padding: 0 24px 24px; }
+  .answer-block.visible { display: block; }
+  .answer-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--accent3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  pre { background: var(--answer-bg); border: 1px solid var(--answer-border); border-radius: 8px; padding: 20px; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.8; color: #67e8f9; }
+  .insight { margin-top: 12px; padding: 14px 18px; background: rgba(251,191,36,0.05); border-left: 3px solid var(--accent4); border-radius: 0 8px 8px 0; font-size: 13px; color: var(--accent4); font-style: italic; }
+  .difficulty { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 3px 8px; border-radius: 4px; }
+  .easy { background: rgba(74,222,128,0.1); color: var(--accent3); }
+  .medium { background: rgba(251,191,36,0.1); color: var(--accent4); }
+  .hard { background: rgba(244,114,182,0.1); color: var(--accent2); }
+  .concept-tag { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 3px 8px; border-radius: 4px; background: rgba(34,211,238,0.1); color: var(--accent); border: 1px solid rgba(34,211,238,0.15); }
+  .boss-card { border-color: rgba(244,114,182,0.4) !important; background: linear-gradient(135deg, #111c1f, #180d18) !important; }
+  .warning-box { background: rgba(251,191,36,0.05); border: 1px solid rgba(251,191,36,0.2); border-radius: 10px; padding: 14px 20px; margin-bottom: 30px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent4); }
+  .footer { text-align: center; padding: 60px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; font-family: 'IBM Plex Mono', monospace; }
+  .footer span { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-tag">// sql advanced · causes of death · vol 2</div>
+  <h1>Master the<br><span>Hard Stuff</span></h1>
+  <p>22 exercises focused on window functions, subqueries, nested queries and CTEs. The patterns that appear in every real analyst interview.</p>
+  <div class="dataset-info">
+    <div class="tag active">causes_of_death.db</div>
+    <div class="tag">22 exercises</div>
+    <div class="tag">Window Functions ⭐</div>
+    <div class="tag">Subqueries</div>
+    <div class="tag">Nested Queries</div>
+    <div class="tag">CTEs</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="progress-bar">
+    <div class="progress-label">Your Progress <span id="progress-text">0 / 22 completed</span></div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <div class="warning-box">
+    ⚠️ Column names with spaces need double quotes: "Cardiovascular diseases" ✅ &nbsp;|&nbsp; Always add: WHERE Code NOT LIKE 'OWID%'
+  </div>
+
+  <!-- Cheat Sheet -->
+  <div class="cheatsheet">
+    <h3>⚡ Quick Reference — Patterns You Need</h3>
+    <div class="cheat-grid">
+      <div class="cheat-item">
+        <h4>WINDOW FUNCTION STRUCTURE</h4>
+        <pre>FUNCTION() OVER (
+  PARTITION BY col  -- group
+  ORDER BY col      -- order within group
+)</pre>
+      </div>
+      <div class="cheat-item">
+        <h4>RANK vs DENSE_RANK vs ROW_NUMBER</h4>
+        <pre>1,2,2,4  → RANK (skips after tie)
+1,2,2,3  → DENSE_RANK (no skip)
+1,2,3,4  → ROW_NUMBER (unique always)</pre>
+      </div>
+      <div class="cheat-item">
+        <h4>LAG / LEAD</h4>
+        <pre>LAG(col, 1, 0)  → previous row
+LEAD(col, 1, 0) → next row
+-- 1 = rows back/forward
+-- 0 = default if NULL</pre>
+      </div>
+      <div class="cheat-item">
+        <h4>CTE PATTERN</h4>
+        <pre>WITH cte1 AS (...),
+     cte2 AS (...)
+SELECT ...
+FROM cte1
+JOIN cte2 ON ...</pre>
+      </div>
+      <div class="cheat-item">
+        <h4>SUBQUERY LOCATIONS</h4>
+        <pre>SELECT col - (SELECT AVG...)
+WHERE col > (SELECT AVG...)
+HAVING SUM() = (SELECT MAX...
+  FROM (SELECT SUM... GROUP BY)
+)</pre>
+      </div>
+      <div class="cheat-item">
+        <h4>FILTER ON WINDOW FUNCTION</h4>
+        <pre>WITH ranked AS (
+  SELECT ..., RANK() OVER (...) AS r
+)
+SELECT * FROM ranked
+WHERE r = 1  -- filter HERE not WHERE above</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: Subqueries -->
+  <div class="section-header">
+    <div class="section-dot" style="background:var(--accent)"></div>
+    <div class="section-title">Subqueries — Build the Reflex</div>
+    <div class="section-line"></div>
+    <div class="section-count">EX 01–06</div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 01</div>
+      <div class="ex-content">
+        <div class="ex-question">Find all countries where Tuberculosis deaths in 2010 were above the global average Tuberculosis deaths in 2010. Show Entity and deaths.</div>
+        <div class="ex-meta"><span class="difficulty easy">easy</span><span class="concept-tag">Subquery in WHERE</span><span class="ex-hint"><span>hint →</span> WHERE "Tuberculosis" > (SELECT AVG... WHERE Year = 2010)</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT Entity, ROUND("Tuberculosis", 0) AS tb_deaths
+FROM causes_of_death
+WHERE Year = 2010
+  AND Code NOT LIKE 'OWID%'
+  AND "Tuberculosis" > (
+      SELECT AVG("Tuberculosis")
+      FROM causes_of_death
+      WHERE Year = 2010
+        AND Code NOT LIKE 'OWID%'
+  )
+ORDER BY tb_deaths DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Both the outer query and inner subquery filter for the same Year — always make sure your subquery matches the context of the outer query.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 02</div>
+      <div class="ex-content">
+        <div class="ex-question">For each country in 2019, show their Malaria deaths AND how many times larger it is than the global average. Label this 'times_above_avg'. Only show countries above average.</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">Subquery in SELECT</span><span class="ex-hint"><span>hint →</span> "Malaria" / (SELECT AVG("Malaria")...) AS times_above_avg</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity,
+    ROUND("Malaria", 0) AS malaria_deaths,
+    ROUND("Malaria" * 1.0 / (
+        SELECT AVG("Malaria")
+        FROM causes_of_death
+        WHERE Year = 2019
+          AND Code NOT LIKE 'OWID%'
+    ), 1) AS times_above_avg
+FROM causes_of_death
+WHERE Year = 2019
+  AND Code NOT LIKE 'OWID%'
+  AND "Malaria" > (
+      SELECT AVG("Malaria")
+      FROM causes_of_death
+      WHERE Year = 2019
+        AND Code NOT LIKE 'OWID%'
+  )
+ORDER BY times_above_avg DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Same subquery used in both SELECT (to calculate ratio) and WHERE (to filter). Remember * 1.0 for decimal division in SQLite.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 03</div>
+      <div class="ex-content">
+        <div class="ex-question">Find the country with the LOWEST Cardiovascular deaths in 2019 (excluding zeros). Use a subquery — not ORDER BY + LIMIT.</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">Subquery in WHERE</span><span class="ex-hint"><span>hint →</span> WHERE "Cardiovascular diseases" = (SELECT MIN... WHERE Year=2019 AND col > 0)</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT Entity, ROUND("Cardiovascular diseases", 0) AS cardio_deaths
+FROM causes_of_death
+WHERE Year = 2019
+  AND Code NOT LIKE 'OWID%'
+  AND "Cardiovascular diseases" = (
+      SELECT MIN("Cardiovascular diseases")
+      FROM causes_of_death
+      WHERE Year = 2019
+        AND Code NOT LIKE 'OWID%'
+        AND "Cardiovascular diseases" > 0
+  )
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 AND col > 0 excludes zero values — important when zeros mean "no data" not "actually zero deaths".</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 04</div>
+      <div class="ex-content">
+        <div class="ex-question">Find years where global Neonatal disorders deaths were BELOW the all-time average across all years. Show Year and total deaths. Is neonatal mortality improving?</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">Subquery in HAVING</span><span class="ex-hint"><span>hint →</span> GROUP BY Year, HAVING SUM(...) &lt; (SELECT AVG of yearly totals)</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT Year, ROUND(SUM("Neonatal disorders"), 0) AS total_neonatal
+FROM causes_of_death
+WHERE Code NOT LIKE 'OWID%'
+GROUP BY Year
+HAVING SUM("Neonatal disorders") < (
+    SELECT AVG(yearly_total)
+    FROM (
+        SELECT SUM("Neonatal disorders") AS yearly_total
+        FROM causes_of_death
+        WHERE Code NOT LIKE 'OWID%'
+        GROUP BY Year
+    )
+)
+ORDER BY Year ASC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Nested subquery in HAVING — inner calculates yearly totals, middle calculates average of those totals, HAVING filters years below that average. If recent years appear → improvement!</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 05</div>
+      <div class="ex-content">
+        <div class="ex-question">For Morocco specifically, find years where Cardiovascular deaths were above Morocco's OWN average. Show Year and deaths. How many years were above average?</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">Correlated Subquery</span><span class="ex-hint"><span>hint →</span> WHERE "Cardiovascular diseases" > (SELECT AVG... WHERE Entity = 'Morocco')</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT Year, ROUND("Cardiovascular diseases", 0) AS cardio_deaths
+FROM causes_of_death
+WHERE Entity = 'Morocco'
+  AND "Cardiovascular diseases" > (
+      SELECT AVG("Cardiovascular diseases")
+      FROM causes_of_death
+      WHERE Entity = 'Morocco'
+  )
+ORDER BY Year ASC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 The subquery filters for the same Entity as the outer query — this is a self-comparison. Morocco's years above its own average are likely the more recent ones as deaths rise. 🇲🇦</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 06</div>
+      <div class="ex-content">
+        <div class="ex-question">Find countries where their 2019 HIV/AIDS deaths were MORE THAN DOUBLE their 2000 HIV/AIDS deaths. Show Entity, 2000 deaths, 2019 deaths, and the ratio.</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">Correlated Subquery</span><span class="ex-hint"><span>hint →</span> subquery to get year 2000 value, then compare to year 2019 outer query</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    a.Entity,
+    ROUND(b."HIV/AIDS", 0) AS deaths_2000,
+    ROUND(a."HIV/AIDS", 0) AS deaths_2019,
+    ROUND(a."HIV/AIDS" * 1.0 / NULLIF(b."HIV/AIDS", 0), 2) AS ratio
+FROM causes_of_death a
+JOIN causes_of_death b 
+    ON a.Entity = b.Entity 
+    AND b.Year = 2000
+WHERE a.Year = 2019
+  AND a.Code NOT LIKE 'OWID%'
+  AND a."HIV/AIDS" > b."HIV/AIDS" * 2
+ORDER BY ratio DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Self-JOIN — joining the same table twice with different aliases (a=2019, b=2000). NULLIF(col, 0) prevents division by zero errors. This is how you compare two different years in one query.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: CTEs -->
+  <div class="section-header">
+    <div class="section-dot" style="background:var(--accent2)"></div>
+    <div class="section-title">CTEs — Think in Steps</div>
+    <div class="section-line"></div>
+    <div class="section-count">EX 07–12</div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 07</div>
+      <div class="ex-content">
+        <div class="ex-question">Using a CTE, calculate the total deaths from ALL causes per country per year (sum every death column). Then show the top 5 deadliest countries in 2019.</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">CTE</span><span class="ex-hint"><span>hint →</span> SUM all columns in CTE, then SELECT from CTE WHERE Year = 2019 LIMIT 5</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH total_deaths AS (
+    SELECT Entity, Year,
+        ROUND(
+            "Meningitis" + "Neoplasms" + "Malaria" + 
+            "Drowning" + "HIV/AIDS" + "Tuberculosis" + 
+            "Neonatal disorders" + "Diarrheal diseases" + 
+            "Cardiovascular diseases" + "Diabetes mellitus" + 
+            "Chronic respiratory diseases" + "Self-harm" +
+            "Lower respiratory infections" + "Nutritional deficiencies"
+        , 0) AS all_cause_total
+    FROM causes_of_death
+    WHERE Code NOT LIKE 'OWID%'
+)
+SELECT Entity, Year, all_cause_total
+FROM total_deaths
+WHERE Year = 2019
+ORDER BY all_cause_total DESC
+LIMIT 5
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Adding all columns gives you all-cause mortality — a key public health metric. The CTE makes this readable; doing it in a subquery would be nearly unreadable.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 08</div>
+      <div class="ex-content">
+        <div class="ex-question">Using a CTE, find each country's average Malaria deaths across all years. Then in the main query, show only countries whose average is above the MEDIAN of all country averages. (Hint: use the middle value approach)</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">CTE + Nested Subquery</span><span class="ex-hint"><span>hint →</span> CTE for averages, then HAVING avg > (SELECT AVG from CTE) as approximation of median</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH country_avg AS (
+    SELECT Entity,
+           ROUND(AVG("Malaria"), 0) AS avg_malaria
+    FROM causes_of_death
+    WHERE Code NOT LIKE 'OWID%'
+    GROUP BY Entity
+)
+SELECT Entity, avg_malaria
+FROM country_avg
+WHERE avg_malaria > (
+    SELECT AVG(avg_malaria) FROM country_avg
+)
+ORDER BY avg_malaria DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 You can reference a CTE inside its own subquery! The CTE is defined once and used twice — in FROM and in the subquery. This is one of CTEs' biggest advantages over subqueries.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 09</div>
+      <div class="ex-content">
+        <div class="ex-question">Using THREE CTEs: (1) total Cardiovascular deaths per country, (2) total Malaria deaths per country, (3) total Diabetes deaths per country. JOIN all three and show countries where cardiovascular is the dominant cause (largest of the three).</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">3 CTEs + JOIN</span><span class="ex-hint"><span>hint →</span> JOIN all 3 CTEs, then WHERE cardio > malaria AND cardio > diabetes</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH cardio AS (
+    SELECT Entity, ROUND(SUM("Cardiovascular diseases"), 0) AS total_cardio
+    FROM causes_of_death WHERE Code NOT LIKE 'OWID%'
+    GROUP BY Entity
+),
+malaria AS (
+    SELECT Entity, ROUND(SUM("Malaria"), 0) AS total_malaria
+    FROM causes_of_death WHERE Code NOT LIKE 'OWID%'
+    GROUP BY Entity
+),
+diabetes AS (
+    SELECT Entity, ROUND(SUM("Diabetes mellitus"), 0) AS total_diabetes
+    FROM causes_of_death WHERE Code NOT LIKE 'OWID%'
+    GROUP BY Entity
+)
+SELECT c.Entity, c.total_cardio, m.total_malaria, d.total_diabetes
+FROM cardio c
+JOIN malaria m ON c.Entity = m.Entity
+JOIN diabetes d ON c.Entity = d.Entity
+WHERE c.total_cardio > m.total_malaria
+  AND c.total_cardio > d.total_diabetes
+ORDER BY c.total_cardio DESC
+LIMIT 15
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Three CTEs joined in sequence — c JOIN m JOIN d. Each JOIN adds another dataset. WHERE compares columns across the joined CTEs. This is the SQL equivalent of pandas merge on multiple DataFrames.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 10</div>
+      <div class="ex-content">
+        <div class="ex-question">Using CTEs, find Morocco's year with the highest Cardiovascular deaths AND year with the lowest. Show both in one result with a label ('Peak Year' and 'Best Year').</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">2 CTEs + UNION</span><span class="ex-hint"><span>hint →</span> CTE for max year, CTE for min year, then UNION ALL to combine</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH morocco AS (
+    SELECT Year, ROUND("Cardiovascular diseases", 0) AS cardio
+    FROM causes_of_death
+    WHERE Entity = 'Morocco'
+),
+peak AS (
+    SELECT Year, cardio, 'Peak Year' AS label
+    FROM morocco
+    WHERE cardio = (SELECT MAX(cardio) FROM morocco)
+),
+best AS (
+    SELECT Year, cardio, 'Best Year' AS label
+    FROM morocco
+    WHERE cardio = (SELECT MIN(cardio) FROM morocco)
+)
+SELECT * FROM peak
+UNION ALL
+SELECT * FROM best
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 UNION ALL combines results from two queries into one table. Both queries must have the same columns. This pattern is useful for combining "best case" and "worst case" into one summary. 🇲🇦</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 11</div>
+      <div class="ex-content">
+        <div class="ex-question">Using a CTE, calculate the percentage each cause contributes to total deaths for each country in 2019. Focus on Cardiovascular diseases, Malaria, and HIV/AIDS. Show Entity and percentages.</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">CTE + Percentages</span><span class="ex-hint"><span>hint →</span> CTE calculates total, main query divides each cause by total * 100</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH totals AS (
+    SELECT Entity,
+           "Cardiovascular diseases" + "Malaria" + "HIV/AIDS" + 
+           "Tuberculosis" + "Neonatal disorders" + "Diabetes mellitus" AS total
+    FROM causes_of_death
+    WHERE Year = 2019 AND Code NOT LIKE 'OWID%'
+)
+SELECT 
+    c.Entity,
+    ROUND("Cardiovascular diseases" * 100.0 / t.total, 1) AS cardio_pct,
+    ROUND("Malaria" * 100.0 / t.total, 1) AS malaria_pct,
+    ROUND("HIV/AIDS" * 100.0 / t.total, 1) AS hiv_pct
+FROM causes_of_death c
+JOIN totals t ON c.Entity = t.Entity
+WHERE c.Year = 2019 AND c.Code NOT LIKE 'OWID%'
+ORDER BY cardio_pct DESC
+LIMIT 15
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 * 100.0 forces decimal division for percentages. The CTE calculates the denominator (total) once — then the main query uses it for each percentage calculation.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 12</div>
+      <div class="ex-content">
+        <div class="ex-question">Using CTEs, find countries that went from HIGH Malaria burden (above global average) in 2000 to LOW Malaria burden (below global average) in 2019. These are countries that successfully reduced Malaria.</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">2 CTEs + JOIN</span><span class="ex-hint"><span>hint →</span> CTE for 2000 high burden countries, CTE for 2019 low burden countries, JOIN to find overlap</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH high_2000 AS (
+    SELECT Entity, ROUND("Malaria", 0) AS malaria_2000
+    FROM causes_of_death
+    WHERE Year = 2000 AND Code NOT LIKE 'OWID%'
+      AND "Malaria" > (
+          SELECT AVG("Malaria") FROM causes_of_death
+          WHERE Year = 2000 AND Code NOT LIKE 'OWID%'
+      )
+),
+low_2019 AS (
+    SELECT Entity, ROUND("Malaria", 0) AS malaria_2019
+    FROM causes_of_death
+    WHERE Year = 2019 AND Code NOT LIKE 'OWID%'
+      AND "Malaria" < (
+          SELECT AVG("Malaria") FROM causes_of_death
+          WHERE Year = 2019 AND Code NOT LIKE 'OWID%'
+      )
+)
+SELECT h.Entity, h.malaria_2000, l.malaria_2019,
+       ROUND((h.malaria_2000 - l.malaria_2019) * 100.0 / h.malaria_2000, 1) AS pct_reduction
+FROM high_2000 h
+JOIN low_2019 l ON h.Entity = l.Entity
+ORDER BY pct_reduction DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 This is real public health analysis — finding countries that made the transition from high to low burden. The pct_reduction shows HOW MUCH they improved. Countries with high pct_reduction are global health success stories.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Window Functions -->
+  <div class="section-header">
+    <div class="section-dot" style="background:var(--accent3)"></div>
+    <div class="section-title">Window Functions — Own Them</div>
+    <div class="section-line"></div>
+    <div class="section-count">EX 13–19</div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 13</div>
+      <div class="ex-content">
+        <div class="ex-question">For each country, show each year's Cardiovascular deaths AND a running total (cumulative sum) of deaths up to that year. Limit to Morocco.</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">SUM() OVER</span><span class="ex-hint"><span>hint →</span> SUM("Cardiovascular diseases") OVER (PARTITION BY Entity ORDER BY Year)</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity, Year,
+    ROUND("Cardiovascular diseases", 0) AS annual_deaths,
+    ROUND(SUM("Cardiovascular diseases") OVER (
+        PARTITION BY Entity 
+        ORDER BY Year
+    ), 0) AS cumulative_deaths
+FROM causes_of_death
+WHERE Entity = 'Morocco'
+ORDER BY Year
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 SUM() OVER with ORDER BY creates a running total — each row adds to the previous total. Without ORDER BY it would just show the grand total on every row. The ORDER BY inside OVER is what makes it cumulative. 🇲🇦</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 14</div>
+      <div class="ex-content">
+        <div class="ex-question">For each year, rank ALL countries by Malaria deaths. Then show only countries ranked 1st, 2nd, and 3rd for year 2010. Use DENSE_RANK instead of RANK.</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">DENSE_RANK</span><span class="ex-hint"><span>hint →</span> DENSE_RANK() OVER (PARTITION BY Year ORDER BY "Malaria" DESC), filter rank <= 3</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH ranked AS (
+    SELECT Entity, Year,
+           ROUND("Malaria", 0) AS malaria_deaths,
+           DENSE_RANK() OVER (
+               PARTITION BY Year 
+               ORDER BY "Malaria" DESC
+           ) AS malaria_rank
+    FROM causes_of_death
+    WHERE Code NOT LIKE 'OWID%'
+)
+SELECT Entity, Year, malaria_deaths, malaria_rank
+FROM ranked
+WHERE Year = 2010 AND malaria_rank <= 3
+ORDER BY malaria_rank
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 DENSE_RANK vs RANK: if two countries tie at rank 2, RANK gives next country rank 4, DENSE_RANK gives rank 3. Use DENSE_RANK when you don't want gaps in ranking numbers.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 15</div>
+      <div class="ex-content">
+        <div class="ex-question">For Morocco, show each year's Cardiovascular deaths alongside the NEXT year's deaths using LEAD(). Also calculate the difference. Which year had the biggest increase coming up?</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">LEAD()</span><span class="ex-hint"><span>hint →</span> LEAD("Cardiovascular diseases", 1, 0) OVER (PARTITION BY Entity ORDER BY Year)</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity, Year,
+    ROUND("Cardiovascular diseases", 0) AS this_year,
+    ROUND(LEAD("Cardiovascular diseases", 1, 0) OVER (
+        PARTITION BY Entity ORDER BY Year
+    ), 0) AS next_year,
+    ROUND(LEAD("Cardiovascular diseases", 1, 0) OVER (
+        PARTITION BY Entity ORDER BY Year
+    ) - "Cardiovascular diseases", 0) AS upcoming_change
+FROM causes_of_death
+WHERE Entity = 'Morocco'
+ORDER BY Year
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 LEAD() is LAG() in reverse — it looks at the NEXT row instead of the previous one. Useful for forecasting questions: "what's coming next year?" Positive upcoming_change = deaths will increase. 🇲🇦</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 16</div>
+      <div class="ex-content">
+        <div class="ex-question">For each country, calculate a 3-year moving average of Cardiovascular deaths. Show Entity, Year, actual deaths, and the moving average. Limit to Morocco.</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">AVG() OVER with ROWS</span><span class="ex-hint"><span>hint →</span> AVG() OVER (PARTITION BY Entity ORDER BY Year ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+SELECT 
+    Entity, Year,
+    ROUND("Cardiovascular diseases", 0) AS actual_deaths,
+    ROUND(AVG("Cardiovascular diseases") OVER (
+        PARTITION BY Entity 
+        ORDER BY Year
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ), 0) AS moving_avg_3yr
+FROM causes_of_death
+WHERE Entity = 'Morocco'
+ORDER BY Year
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW means "include this row + 2 rows before it" — creating a 3-year window. Moving averages smooth out yearly fluctuations to show the trend clearly.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 17</div>
+      <div class="ex-content">
+        <div class="ex-question">Using ROW_NUMBER(), assign a unique number to each country within each year based on Tuberculosis deaths (highest = 1). Then show only row_number = 1 for each year from 2010 to 2019. Has the same country been #1 every year?</div>
+        <div class="ex-meta"><span class="difficulty medium">medium</span><span class="concept-tag">ROW_NUMBER()</span><span class="ex-hint"><span>hint →</span> ROW_NUMBER() OVER (PARTITION BY Year ORDER BY "Tuberculosis" DESC), filter rn = 1</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH numbered AS (
+    SELECT Entity, Year,
+           ROUND("Tuberculosis", 0) AS tb_deaths,
+           ROW_NUMBER() OVER (
+               PARTITION BY Year 
+               ORDER BY "Tuberculosis" DESC
+           ) AS rn
+    FROM causes_of_death
+    WHERE Code NOT LIKE 'OWID%'
+)
+SELECT Entity, Year, tb_deaths, rn
+FROM numbered
+WHERE rn = 1 AND Year BETWEEN 2010 AND 2019
+ORDER BY Year
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 ROW_NUMBER() always gives unique numbers — no ties. Even if two countries have identical deaths, one gets 1 and one gets 2 (arbitrary for ties). Use RANK() when ties should share the same rank.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 18</div>
+      <div class="ex-content">
+        <div class="ex-question">For each country, show the year-over-year PERCENTAGE CHANGE in Cardiovascular deaths using LAG(). Show Entity, Year, current deaths, previous deaths, and pct_change. Filter for Morocco and only show years where pct_change was negative (deaths decreased).</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">LAG() + Percentage</span><span class="ex-hint"><span>hint →</span> (current - previous) * 100.0 / previous AS pct_change, wrap in CTE then filter pct_change < 0</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH yoy AS (
+    SELECT Entity, Year,
+           ROUND("Cardiovascular diseases", 0) AS current_deaths,
+           ROUND(LAG("Cardiovascular diseases") OVER (
+               PARTITION BY Entity ORDER BY Year
+           ), 0) AS prev_deaths,
+           ROUND(("Cardiovascular diseases" - LAG("Cardiovascular diseases") OVER (
+               PARTITION BY Entity ORDER BY Year
+           )) * 100.0 / NULLIF(LAG("Cardiovascular diseases") OVER (
+               PARTITION BY Entity ORDER BY Year
+           ), 0), 2) AS pct_change
+    FROM causes_of_death
+    WHERE Entity = 'Morocco'
+)
+SELECT * FROM yoy
+WHERE pct_change < 0
+ORDER BY pct_change ASC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 NULLIF prevents division by zero. Wrapping in CTE lets you filter on pct_change — you can't filter on window function results directly in WHERE. Years with negative pct_change are rare improvements in Morocco's cardiovascular trend. 🇲🇦</div>
+    </div>
+  </div>
+
+  <div class="exercise-card">
+    <div class="exercise-header">
+      <div class="ex-number">EX 19</div>
+      <div class="ex-content">
+        <div class="ex-question">For year 2019, show each country's Cardiovascular deaths AND what PERCENTILE they fall in (0-100). Use PERCENT_RANK() window function. Which percentile is Morocco in?</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">PERCENT_RANK()</span><span class="ex-hint"><span>hint →</span> PERCENT_RANK() OVER (ORDER BY "Cardiovascular diseases") * 100</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH percentiles AS (
+    SELECT Entity,
+           ROUND("Cardiovascular diseases", 0) AS cardio_deaths,
+           ROUND(PERCENT_RANK() OVER (
+               ORDER BY "Cardiovascular diseases"
+           ) * 100, 1) AS percentile
+    FROM causes_of_death
+    WHERE Year = 2019 AND Code NOT LIKE 'OWID%'
+)
+SELECT *
+FROM percentiles
+WHERE Entity = 'Morocco'
+   OR percentile >= 99
+ORDER BY percentile DESC
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 PERCENT_RANK() shows where a country sits relative to all others — 90th percentile means higher than 90% of countries. This is how you contextualize a number within a distribution. Where does Morocco rank? 🇲🇦</div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Boss Levels -->
+  <div class="section-header">
+    <div class="section-dot" style="background:var(--accent2)"></div>
+    <div class="section-title">Boss Levels — Full Pipeline</div>
+    <div class="section-line"></div>
+    <div class="section-count">EX 20–22</div>
+  </div>
+
+  <div class="exercise-card boss-card">
+    <div class="exercise-header">
+      <div class="ex-number" style="color:var(--accent2);background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.2)">EX 20</div>
+      <div class="ex-content">
+        <div class="ex-question">Find countries that were consistently in the TOP 10 for Cardiovascular deaths for EVERY year from 2010 to 2019. A country must appear in the top 10 ALL 10 years.</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">CTE + RANK + COUNT</span><span class="ex-hint"><span>hint →</span> CTE with RANK per year, filter rank &lt;= 10, then GROUP BY Entity HAVING COUNT(*) = 10</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH ranked AS (
+    SELECT Entity, Year,
+           RANK() OVER (
+               PARTITION BY Year 
+               ORDER BY "Cardiovascular diseases" DESC
+           ) AS cardio_rank
+    FROM causes_of_death
+    WHERE Code NOT LIKE 'OWID%'
+      AND Year BETWEEN 2010 AND 2019
+),
+top10_per_year AS (
+    SELECT Entity, Year
+    FROM ranked
+    WHERE cardio_rank <= 10
+)
+SELECT Entity, COUNT(*) AS years_in_top10
+FROM top10_per_year
+GROUP BY Entity
+HAVING COUNT(*) = 10
+ORDER BY Entity
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Two CTEs chained: first ranks countries per year, second filters top 10. Then GROUP BY + HAVING COUNT(*) = 10 finds countries that appeared all 10 years. This is a "consistent performer" analysis.</div>
+    </div>
+  </div>
+
+  <div class="exercise-card boss-card">
+    <div class="exercise-header">
+      <div class="ex-number" style="color:var(--accent2);background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.2)">EX 21</div>
+      <div class="ex-content">
+        <div class="ex-question">For each country, find the year where Malaria deaths dropped the MOST compared to the previous year (biggest single-year reduction). Show Entity, Year, the drop amount, and rank countries by biggest drop.</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">LAG + CTE + RANK</span><span class="ex-hint"><span>hint →</span> LAG for year-over-year change, CTE to store it, then RANK by biggest drop per country</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH yoy AS (
+    SELECT Entity, Year,
+           "Malaria" AS malaria,
+           LAG("Malaria") OVER (
+               PARTITION BY Entity ORDER BY Year
+           ) AS prev_malaria,
+           "Malaria" - LAG("Malaria") OVER (
+               PARTITION BY Entity ORDER BY Year
+           ) AS yoy_change
+    FROM causes_of_death
+    WHERE Code NOT LIKE 'OWID%'
+),
+biggest_drop AS (
+    SELECT Entity, Year, 
+           ROUND(malaria, 0) AS malaria_deaths,
+           ROUND(yoy_change, 0) AS annual_change,
+           ROW_NUMBER() OVER (
+               PARTITION BY Entity 
+               ORDER BY yoy_change ASC
+           ) AS drop_rank
+    FROM yoy
+    WHERE yoy_change IS NOT NULL
+)
+SELECT Entity, Year, malaria_deaths, annual_change
+FROM biggest_drop
+WHERE drop_rank = 1
+  AND annual_change < 0
+ORDER BY annual_change ASC
+LIMIT 15
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 Two window functions in sequence — LAG() to calculate change, then ROW_NUMBER() to find the biggest drop per country. This is a real epidemiological question: which country made the most dramatic single-year Malaria reduction?</div>
+    </div>
+  </div>
+
+  <div class="exercise-card boss-card">
+    <div class="exercise-header">
+      <div class="ex-number" style="color:var(--accent2);background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.2)">EX 22</div>
+      <div class="ex-content">
+        <div class="ex-question">FINAL BOSS: For each country, calculate: (1) total infectious deaths, (2) total chronic deaths, (3) rank by infectious burden, (4) rank by chronic burden, (5) identify countries where infectious rank is much higher than chronic rank (infectious disease dominates relative to chronic). Show top 15 most "infectious-dominant" countries.</div>
+        <div class="ex-meta"><span class="difficulty hard">hard</span><span class="concept-tag">Full Pipeline</span><span class="ex-hint"><span>hint →</span> CTE for totals → window ranks → filter where infectious_rank - chronic_rank is most negative</span></div>
+      </div>
+      <div class="btn-group"><button class="done-btn" onclick="markDone(this)">✓</button><button class="toggle-btn" onclick="toggle(this)">SHOW</button></div>
+    </div>
+    <div class="answer-block">
+      <div class="answer-label">// answer</div>
+      <pre>query = """
+WITH disease_burden AS (
+    SELECT Entity,
+           ROUND(SUM("Malaria" + "HIV/AIDS" + "Tuberculosis" + 
+                     "Neonatal disorders"), 0) AS infectious_total,
+           ROUND(SUM("Cardiovascular diseases" + "Neoplasms" + 
+                     "Diabetes mellitus"), 0) AS chronic_total
+    FROM causes_of_death
+    WHERE Code NOT LIKE 'OWID%'
+    GROUP BY Entity
+),
+ranked AS (
+    SELECT Entity, infectious_total, chronic_total,
+           RANK() OVER (ORDER BY infectious_total DESC) AS infectious_rank,
+           RANK() OVER (ORDER BY chronic_total DESC) AS chronic_rank
+    FROM disease_burden
+)
+SELECT 
+    Entity,
+    infectious_total,
+    chronic_total,
+    infectious_rank,
+    chronic_rank,
+    chronic_rank - infectious_rank AS rank_gap
+FROM ranked
+WHERE infectious_total > 0 AND chronic_total > 0
+ORDER BY rank_gap DESC
+LIMIT 15
+"""
+pd.read_sql(query, conn)</pre>
+      <div class="insight">💡 rank_gap = chronic_rank - infectious_rank. Large positive gap means: low chronic rank (high burden) but high infectious rank (low burden) → infectious disease dominates. Countries with highest rank_gap are the most infectious-disease-burdened relative to their chronic disease profile. This is real global health analysis. 🌍</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  built for <span>fatima zahra</span> · master the hard stuff · 🇲🇦
+</div>
+
+<script>
+  let completed = 0;
+  const total = 22;
+  function toggle(btn) {
+    const card = btn.closest('.exercise-card');
+    const answer = card.querySelector('.answer-block');
+    if (answer.classList.contains('visible')) {
+      answer.classList.remove('visible');
+      btn.textContent = 'SHOW';
+    } else {
+      answer.classList.add('visible');
+      btn.textContent = 'HIDE';
+    }
+  }
+  function markDone(btn) {
+    const card = btn.closest('.exercise-card');
+    if (btn.classList.contains('marked')) {
+      btn.classList.remove('marked');
+      card.classList.remove('completed');
+      completed--;
+    } else {
+      btn.classList.add('marked');
+      card.classList.add('completed');
+      completed++;
+    }
+    document.getElementById('progress-text').textContent = `${completed} / ${total} completed`;
+    document.getElementById('progress-fill').style.width = `${(completed/total)*100}%`;
+  }
+</script>
+</body>
+</html>
